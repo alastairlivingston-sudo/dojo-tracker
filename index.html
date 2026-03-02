@@ -189,7 +189,7 @@ setSyncStatus('connecting');
 /* ═══════════════════════════════════════════
    DATA DEFINITIONS
 ═══════════════════════════════════════════ */
-const AVATARS = ['🐉','🦄','🐺','🦊','🐸','🐼','🦁','🐯','🐻','🦋','🐨','🐙'];
+const AVATARS = ['🐉','🦄','🐺','🦊','🐸','🐼','🦁','🐯','🐻','🦋','🐨','🐙','🦅','🐬','🦖','🐧','🦓','🦒','🦜','🦈'];
 
 const BADGE_CATEGORIES = [
   { id:'beginner', icon:'🌊', title:'Beginner', badges:[
@@ -354,7 +354,7 @@ window.addPoint = async i => {
   const el = document.getElementById(`sc-${i}`);
   el.textContent = children[i].points;
   animateScore(el);
-  const anim = pickAnim(i);
+  const anim = AVATAR_ANIM[children[i].avatar] || AVATAR_ANIM['🐉'];
   const cv = document.getElementById(`cv-${i}`);
   anim.run(cv.getContext('2d'), cv.width, cv.height);
   const lbl = document.getElementById(`al-${i}`);
@@ -482,7 +482,6 @@ window.toggleBadge = async id => {
 /* ═══════════════════════════════════════════
    ANIMATIONS
 ═══════════════════════════════════════════ */
-const lastAnim=[-1,-1];
 const R=Math.random, ri=n=>~~(R()*n);
 function mk(n,w,h,extra){return Array.from({length:n},()=>Object.assign({x:w/2,y:h*.45,life:1},extra()))}
 function loop(ctx,w,h,p){const f=()=>{ctx.clearRect(0,0,w,h);p=p.filter(q=>q.life>0);p.forEach(q=>{ctx.globalAlpha=q.life;if(q.rot!==undefined){ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.rot);ctx.font=`${q.sz}px serif`;ctx.fillText(q.e,-q.sz/2,q.sz/2);ctx.restore();q.rot+=q.rv||0}else{ctx.font=`${q.sz+(q.fl?Math.sin(q.fl)*2:0)}px serif`;ctx.fillText(q.e,q.x+(q.fl?Math.sin(q.fl)*3:0)+(q.wb?Math.sin(q.wb)*3:0),q.y);}q.x+=q.vx||0;q.y+=q.vy||0;if(q.grav)q.vy+=.22;if(q.wb)q.wb+=q.wbr||.15;if(q.fl)q.fl+=q.flr||0;q.life-=q.fade||.03});ctx.globalAlpha=1;p.length?requestAnimationFrame(f):ctx.clearRect(0,0,w,h)};f()}
@@ -493,22 +492,28 @@ function loopWave(ctx,w,h,p){const f=()=>{ctx.clearRect(0,0,w,h);p=p.filter(q=>q
 function loopMagic(ctx,w,h,p){const f=()=>{ctx.clearRect(0,0,w,h);p=p.filter(q=>q.life>0);p.forEach(q=>{const r=q.sp*q.t;ctx.globalAlpha=q.life;ctx.font=`${q.sz}px serif`;ctx.fillText(q.e,q.x+Math.cos(q.ang+q.t*.1)*r,q.y+Math.sin(q.ang+q.t*.1)*r*.7);q.t+=.6;q.life-=.02});ctx.globalAlpha=1;p.length?requestAnimationFrame(f):ctx.clearRect(0,0,w,h)};f()}
 function loopConf(ctx,w,h,p){const f=()=>{ctx.clearRect(0,0,w,h);p=p.filter(q=>q.life>0);p.forEach(q=>{ctx.save();ctx.globalAlpha=q.life;ctx.fillStyle=q.col;ctx.translate(q.x,q.y);ctx.rotate(q.rot);ctx.fillRect(-q.wd/2,-q.ht/2,q.wd,q.ht);ctx.restore();q.x+=q.vx;q.y+=q.vy;q.vy+=.15;q.rot+=q.rv;q.life-=.02});ctx.globalAlpha=1;p.length?requestAnimationFrame(f):ctx.clearRect(0,0,w,h)};f()}
 
-const ANIMATIONS=[
-  {name:'⭐ STARS',   run(c,w,h){loop(c,w,h,mk(25,w,h,()=>({vx:(R()-.5)*8,vy:(R()-1.4)*9,e:['⭐','🌟','✨'][ri(3)],sz:R()*14+9,grav:true})))} },
-  {name:'💥 BURST',   run(c,w,h){const cols=['#f59e0b','#ef4444','#3b82f6','#10b981','#8b5cf6','#ec4899'];loopCirc(c,w,h,Array.from({length:30},()=>{const a=R()*Math.PI*2,s=R()*6+3;return{x:w/2,y:h*.45,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:R()*5+3,col:cols[ri(6)],life:1}}))} },
-  {name:'❤️ HEARTS',  run(c,w,h){loop(c,w,h,mk(18,w,h,()=>({vx:(R()-.5)*2,vy:-(R()*3+2),e:['❤️','🧡','💛','💚','💜','💙'][ri(6)],sz:R()*16+10,wb:R()*Math.PI*2,wbr:.15})))} },
-  {name:'🫧 BUBBLES', run(c,w,h){loopBubble(c,w,h,Array.from({length:20},()=>({x:R()*w,y:h+20,vy:-(R()*2+1.5),r:R()*14+6,life:1,wb:R()*Math.PI*2})))} },
-  {name:'🌈 RAINBOW', run(c,w,h){loopDot(c,w,h,mk(22,w,h,()=>({vx:(R()-.5)*9,vy:(R()-1.3)*8,col:`hsl(${ri(360)},90%,65%)`,sz:R()*8+4})))} },
-  {name:'⚡ LIGHTNING',run(c,w,h){loop(c,w,h,mk(20,w,h,()=>({vx:(R()-.5)*10,vy:(R()-1.5)*10,e:['⚡','💫','✴️'][ri(3)],sz:R()*13+8,grav:true,fade:.035})))} },
-  {name:'🍀 LUCKY',   run(c,w,h){loop(c,w,h,mk(16,w,h,()=>({vx:(R()-.5)*3,vy:-(R()*4+1),e:['🍀','🌸','🌺','🌻','🌼'][ri(5)],sz:R()*16+10,rot:R()*Math.PI*2,rv:(R()-.5)*.2})))} },
-  {name:'🌊 WAVE',    run(c,w,h){loopWave(c,w,h,Array.from({length:24},()=>({x:-(R()*w*.3),y:h*.4+R()*h*.2,vx:R()*5+3,vy:(R()-.5)*1.5,e:['🌊','💧','❄️'][ri(3)],sz:R()*13+8,life:1})))} },
-  {name:'🔥 FIRE',    run(c,w,h){loop(c,w,h,mk(22,w,h,()=>({vx:(R()-.5)*2.5,vy:-(R()*5+2),e:['🔥','💥','✨'][ri(3)],sz:R()*15+9,fl:R()*Math.PI*2,flr:.3})))} },
-  {name:'🎯 SPIRAL',  run(c,w,h){let a=0,p=[];const iv=setInterval(()=>{const r=a*3;p.push({x:w/2+Math.cos(a)*r,y:h*.45+Math.sin(a)*r*.6,e:['🌟','⭐','✨'][ri(3)],sz:R()*10+7,life:1});a+=.45;if(a>Math.PI*4)clearInterval(iv)},30);const f=()=>{c.clearRect(0,0,w,h);p=p.filter(q=>q.life>0);p.forEach(q=>{c.globalAlpha=q.life;c.font=`${q.sz}px serif`;c.fillText(q.e,q.x,q.y);q.life-=.018});c.globalAlpha=1;(p.length||a<Math.PI*4)?requestAnimationFrame(f):c.clearRect(0,0,w,h)};f()} },
-  {name:'🪄 MAGIC',   run(c,w,h){loopMagic(c,w,h,Array.from({length:28},()=>({x:w/2,y:h*.45,ang:R()*Math.PI*2,sp:R()*4+2,e:['🪄','✨','💫','🌟'][ri(4)],sz:R()*12+8,life:1,t:0})))} },
-  {name:'🎊 CONFETTI',run(c,w,h){const cols=['#f59e0b','#ef4444','#3b82f6','#10b981','#8b5cf6','#ec4899','#f97316'];loopConf(c,w,h,Array.from({length:30},()=>({x:w/2+(R()-.5)*40,y:h*.3,vx:(R()-.5)*5,vy:-(R()*3+1),wd:R()*10+4,ht:R()*5+3,rot:R()*Math.PI*2,rv:(R()-.5)*.2,col:cols[ri(7)],life:1})))} },
-];
-
-function pickAnim(ci){let i;do{i=ri(ANIMATIONS.length)}while(i===lastAnim[ci]);lastAnim[ci]=i;return ANIMATIONS[i]}
+const AVATAR_ANIM = {
+  '🐉': {name:'🔥 DRAGON FIRE',     run(c,w,h){loop(c,w,h,mk(24,w,h,()=>({vx:(R()-.5)*4,vy:-(R()*7+3),e:['🔥','💥','🌋'][ri(3)],sz:R()*16+10,fl:R()*Math.PI*2,flr:.25,fade:.025})))}},
+  '🦄': {name:'🌈 UNICORN MAGIC',   run(c,w,h){loopMagic(c,w,h,Array.from({length:30},()=>({x:w/2,y:h*.45,ang:R()*Math.PI*2,sp:R()*5+2,e:['✨','🌟','💫','🌈','💜','💛'][ri(6)],sz:R()*13+8,life:1,t:0})))}},
+  '🐺': {name:'🌕 WOLF HOWL',       run(c,w,h){loop(c,w,h,mk(20,w,h,()=>({vx:(R()-.5)*6,vy:-(R()*5+2),e:['🌕','⭐','🌟','❄️'][ri(4)],sz:R()*14+8,grav:true,fade:.02})))}},
+  '🦊': {name:'🍂 FOX SPARKS',      run(c,w,h){loopCirc(c,w,h,Array.from({length:28},()=>{const a=R()*Math.PI*2,s=R()*9+4;return{x:w/2,y:h*.45,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:R()*4+2,col:['#f97316','#ef4444','#fbbf24','#dc2626'][ri(4)],life:1}}))}},
+  '🐸': {name:'🫧 FROG BUBBLES',    run(c,w,h){loop(c,w,h,Array.from({length:22},()=>({x:R()*w,y:h+10,vx:(R()-.5)*2,vy:-(R()*2.5+1.5),e:['🫧','💚','🐸'][ri(3)],sz:R()*14+7,life:1,wb:R()*Math.PI*2,wbr:.06,fade:.012})))}},
+  '🐼': {name:'🎊 PANDA PARTY',     run(c,w,h){loopConf(c,w,h,Array.from({length:32},()=>({x:w/2+(R()-.5)*40,y:h*.3,vx:(R()-.5)*5,vy:-(R()*3+1),wd:R()*10+4,ht:R()*5+3,rot:R()*Math.PI*2,rv:(R()-.5)*.2,col:['#000000','#ffffff','#e5e7eb','#374151'][ri(4)],life:1})))}},
+  '🦁': {name:'👑 LION ROAR',       run(c,w,h){loopCirc(c,w,h,Array.from({length:32},()=>{const a=R()*Math.PI*2,s=R()*7+3;return{x:w/2,y:h*.45,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:R()*7+3,col:['#f59e0b','#fbbf24','#f97316','#fcd34d'][ri(4)],life:1}}))}},
+  '🐯': {name:'⚡ TIGER STRIKE',    run(c,w,h){loop(c,w,h,mk(22,w,h,()=>({vx:(R()-.5)*12,vy:(R()-1.5)*10,e:['⚡','🌩️','💥','✴️'][ri(4)],sz:R()*13+8,grav:true,fade:.032})))}},
+  '🐻': {name:'🍯 BEAR HONEY',      run(c,w,h){loop(c,w,h,mk(20,w,h,()=>({vx:(R()-.5)*5,vy:-(R()*4+1),e:['🍯','🐝','⭐','🌟'][ri(4)],sz:R()*15+9,rot:R()*Math.PI*2,rv:(R()-.5)*.15,fade:.022})))}},
+  '🦋': {name:'💜 BUTTERFLY FLUTTER',run(c,w,h){loop(c,w,h,mk(20,w,h,()=>({vx:(R()-.5)*3,vy:-(R()*3+1.5),e:['🦋','💜','💛','🌸','💗'][ri(5)],sz:R()*15+9,wb:R()*Math.PI*2,wbr:.12,fade:.018})))}},
+  '🐨': {name:'🌿 KOALA LEAVES',    run(c,w,h){loop(c,w,h,mk(18,w,h,()=>({vx:(R()-.5)*2.5,vy:-(R()*2.5+1),e:['🌿','🍃','🌱','🍀'][ri(4)],sz:R()*16+10,rot:R()*Math.PI*2,rv:(R()-.5)*.18,fade:.015})))}},
+  '🐙': {name:'🟣 OCTOPUS INK',     run(c,w,h){loopCirc(c,w,h,Array.from({length:30},()=>{const a=R()*Math.PI*2,s=R()*5+2;return{x:w/2,y:h*.45,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:R()*7+3,col:['#7c3aed','#6d28d9','#4c1d95','#a78bfa','#c4b5fd'][ri(5)],life:1}}))}},
+  '🦅': {name:'🦅 EAGLE SOAR',      run(c,w,h){loop(c,w,h,mk(22,w,h,()=>({vx:(R()-.5)*11,vy:-(R()*6+3),e:['🦅','✨','💨','🌟'][ri(4)],sz:R()*14+8,fade:.02})))}},
+  '🐬': {name:'🌊 DOLPHIN SPLASH',  run(c,w,h){loop(c,w,h,mk(22,w,h,()=>({vx:(R()-.5)*6,vy:-(R()*5+2),e:['💧','🌊','💦','🐬'][ri(4)],sz:R()*14+8,grav:true,fade:.026})))}},
+  '🦖': {name:'🦖 DINO ROAR',       run(c,w,h){loopCirc(c,w,h,Array.from({length:36},()=>{const a=R()*Math.PI*2,s=R()*9+4;return{x:w/2,y:h*.45,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:R()*7+3,col:['#65a30d','#16a34a','#84cc16','#dc2626','#f59e0b'][ri(5)],life:1}}))}},
+  '🐧': {name:'❄️ PENGUIN SNOW',    run(c,w,h){loop(c,w,h,Array.from({length:28},()=>({x:R()*w,y:-10,vx:(R()-.5)*1.5,vy:R()*2+1.5,e:['❄️','🌨️','🐧'][ri(3)],sz:R()*13+7,life:1,wb:R()*Math.PI*2,wbr:.06,fade:.011})))}},
+  '🦓': {name:'🦓 ZEBRA STRIPES',   run(c,w,h){loopConf(c,w,h,Array.from({length:30},()=>({x:w/2+(R()-.5)*40,y:h*.3,vx:(R()-.5)*6,vy:-(R()*4+1),wd:R()*14+3,ht:R()*4+2,rot:R()*Math.PI*2,rv:(R()-.5)*.25,col:R()>.5?'#000000':'#f9fafb',life:1})))}},
+  '🦒': {name:'⭐ GIRAFFE STARS',   run(c,w,h){loop(c,w,h,mk(18,w,h,()=>({vx:(R()-.5)*1.5,vy:-(R()*6+4),e:['⭐','🌟','✨','🌠'][ri(4)],sz:R()*16+10,fade:.014})))}},
+  '🦜': {name:'🌈 PARROT FEATHERS', run(c,w,h){loop(c,w,h,mk(24,w,h,()=>({vx:(R()-.5)*8,vy:(R()-1.2)*8,e:['🦜','🌈','💚','❤️','💛','💙'][ri(6)],sz:R()*14+9,rot:R()*Math.PI*2,rv:(R()-.5)*.2,grav:true,fade:.025})))}},
+  '🦈': {name:'🦈 SHARK ATTACK',    run(c,w,h){loopWave(c,w,h,Array.from({length:26},()=>({x:-(R()*w*.5),y:h*.3+R()*h*.3,vx:R()*7+4,vy:(R()-.5)*2,e:['🦈','🌊','💧','⚡'][ri(4)],sz:R()*14+8,life:1})))}},
+};
 const SA=['pop','shake','spin','bounce']; let lastSA=-1;
 function animateScore(el){let i;do{i=ri(4)}while(i===lastSA);lastSA=i;el.classList.remove(...SA);void el.offsetWidth;el.classList.add(SA[i])}
 
