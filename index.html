@@ -46,7 +46,6 @@ h1{text-align:center;font-size:clamp(1.5rem,6vw,2rem);margin-bottom:4px;text-sha
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;max-width:500px;margin:0 auto 18px}
 .card{background:rgba(255,255,255,.08);border-radius:22px;padding:20px 12px 22px;text-align:center;border:1px solid rgba(255,255,255,.12);position:relative;overflow:hidden}
 .card canvas{position:absolute;top:0;left:0;pointer-events:none;width:100%;height:100%}
-.leader-badge{position:absolute;top:10px;right:10px;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#1a1a2e;font-size:.6rem;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.8px}
 .child-name{font-size:1rem;font-weight:700;margin-bottom:12px;color:#e2d9f3}
 .avatar-btn{font-size:clamp(3rem,13vw,4.5rem);display:block;cursor:pointer;width:clamp(72px,24vw,96px);height:clamp(72px,24vw,96px);line-height:clamp(72px,24vw,96px);border-radius:50%;border:3px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);margin:0 auto 6px;user-select:none;touch-action:manipulation;transition:all .12s}
 .avatar-btn:active{transform:scale(.86);background:rgba(167,139,250,.25);border-color:#a78bfa}
@@ -334,11 +333,9 @@ function renderDojo() {
   const grid = document.getElementById('grid'); grid.innerHTML = '';
   const max = Math.max(...children.map(c=>c.points));
   children.forEach((c,i) => {
-    const isL = c.points>0 && c.points===max;
     const card = document.createElement('div');
     card.id=`card-${i}`; card.className='card';
     card.innerHTML=`<canvas id="cv-${i}" width="240" height="240"></canvas>
-      ${isL?`<div class="leader-badge">👑 LEADER</div>`:''}
       <div class="child-name">${c.name}</div>
       <span class="avatar-btn" id="av-${i}" onclick="addPoint(${i})">${c.avatar}</span>
       <div class="tap-hint">TAP TO GIVE DOJO</div>
@@ -361,21 +358,9 @@ window.addPoint = async i => {
   lbl.textContent = anim.name; lbl.classList.add('show');
   setTimeout(()=>lbl.classList.remove('show'), 900);
   if (children[i].points % 2 === 0) bigBurst();
-  updateLeaders();
   await pushChildren();
 };
 
-function updateLeaders() {
-  const max = Math.max(...children.map(c=>c.points));
-  children.forEach((c,i) => {
-    const card = document.getElementById(`card-${i}`);
-    let b = card.querySelector('.leader-badge');
-    if (c.points>0 && c.points===max) {
-      if (!b) { b=document.createElement('div'); b.className='leader-badge'; card.appendChild(b); }
-      b.textContent = '👑 LEADER';
-    } else if (b) b.remove();
-  });
-}
 
 window.saveSession = async () => {
   const now = new Date();
