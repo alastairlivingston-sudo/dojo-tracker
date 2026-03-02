@@ -1,4 +1,4 @@
-const CACHE = 'dojo-v1';
+const CACHE = 'dojo-v2';
 const ASSETS = ['/dojo-tracker/', '/dojo-tracker/index.html', '/dojo-tracker/manifest.json', '/dojo-tracker/icon.png'];
 
 // Install: cache all assets
