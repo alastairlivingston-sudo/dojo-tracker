@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dojo">
+<meta name="theme-color" content="#1a1a2e">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<title>Dojo Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'Segoe UI',sans-serif;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);min-height:100vh;min-height:-webkit-fill-available;padding:max(env(safe-area-inset-top),16px) 16px max(env(safe-area-inset-bottom),32px);color:#fff;overscroll-behavior:none}
+.tabs{display:flex;gap:8px;max-width:500px;margin:0 auto 20px;background:rgba(255,255,255,.06);border-radius:16px;padding:5px}
+.tab{flex:1;padding:10px 6px;border-radius:12px;border:none;background:none;color:rgba(255,255,255,.5);font-size:.82rem;font-weight:700;cursor:pointer;touch-action:manipulation;transition:all .2s;letter-spacing:.5px}
+.tab.active{background:rgba(167,139,250,.25);color:#c4b5fd}
+.tab:active{opacity:.7}
+h1{text-align:center;font-size:clamp(1.5rem,6vw,2rem);margin-bottom:4px;text-shadow:0 0 20px #a78bfa;letter-spacing:2px;padding-top:8px}
+.subtitle{text-align:center;color:#a78bfa;margin-bottom:16px;font-size:.85rem}
+.page{display:none}.page.active{display:block}
+
+/* Sync status bar */
+#sync-bar{max-width:500px;margin:0 auto 14px;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:.75rem}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#6b7280;flex-shrink:0;transition:background .3s}
+.sync-dot.live{background:#10b981;box-shadow:0 0 6px #10b981}
+.sync-dot.error{background:#ef4444}
+#sync-text{color:rgba(255,255,255,.45)}
+
+/* Setup */
+#setup{max-width:460px;margin:0 auto;background:rgba(255,255,255,.07);border-radius:20px;padding:24px 20px;border:1px solid rgba(255,255,255,.1)}
+#setup h2{margin-bottom:16px;color:#c4b5fd;text-align:center;font-size:1.05rem}
+.child-entry{margin-bottom:20px}
+.child-entry label{display:block;color:#c4b5fd;font-size:.78rem;margin-bottom:6px;font-weight:700;letter-spacing:1px}
+.child-entry input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-size:1rem}
+.child-entry input::placeholder{color:rgba(255,255,255,.4)}
+.avatar-pick{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.avatar-pick span{font-size:1.9rem;cursor:pointer;padding:5px 7px;border-radius:10px;border:2px solid transparent;transition:all .15s;user-select:none;touch-action:manipulation}
+.avatar-pick span.selected{border-color:#a78bfa;background:rgba(167,139,250,.25)}
+.divider{border:none;border-top:1px solid rgba(255,255,255,.1);margin:16px 0}
+.start-btn{display:block;width:100%;padding:16px;border-radius:14px;border:none;cursor:pointer;background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;font-size:1.1rem;font-weight:700;margin-top:14px;touch-action:manipulation}
+.start-btn:active{opacity:.85;transform:scale(.98)}
+
+/* Dojo */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;max-width:500px;margin:0 auto 18px}
+.card{background:rgba(255,255,255,.08);border-radius:22px;padding:20px 12px 22px;text-align:center;border:1px solid rgba(255,255,255,.12);position:relative;overflow:hidden}
+.card canvas{position:absolute;top:0;left:0;pointer-events:none;width:100%;height:100%}
+.leader-badge{position:absolute;top:10px;right:10px;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#1a1a2e;font-size:.6rem;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.8px}
+.child-name{font-size:1rem;font-weight:700;margin-bottom:12px;color:#e2d9f3}
+.avatar-btn{font-size:clamp(3rem,13vw,4.5rem);display:block;cursor:pointer;width:clamp(72px,24vw,96px);height:clamp(72px,24vw,96px);line-height:clamp(72px,24vw,96px);border-radius:50%;border:3px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);margin:0 auto 6px;user-select:none;touch-action:manipulation;transition:all .12s}
+.avatar-btn:active{transform:scale(.86);background:rgba(167,139,250,.25);border-color:#a78bfa}
+.tap-hint{font-size:.6rem;color:rgba(255,255,255,.3);margin-bottom:10px;letter-spacing:.8px}
+.score{font-size:clamp(2.4rem,10vw,3.6rem);font-weight:900;color:#a78bfa;margin-bottom:2px;text-shadow:0 0 20px rgba(167,139,250,.6)}
+.score.pop{animation:pop .35s ease}.score.shake{animation:shake .35s ease}.score.spin{animation:spin .4s ease}.score.bounce{animation:bounce .5s ease}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.6)}70%{transform:scale(.88)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+@keyframes spin{0%{transform:rotate(0)scale(1)}50%{transform:rotate(20deg)scale(1.3)}100%{transform:rotate(0)scale(1)}}
+@keyframes bounce{0%,100%{transform:translateY(0)}30%{transform:translateY(-18px)}60%{transform:translateY(-8px)}}
+.score-label{font-size:.65rem;color:rgba(255,255,255,.35);letter-spacing:1px}
+.anim-label{position:absolute;bottom:10px;left:0;right:0;font-size:.6rem;color:rgba(255,255,255,.4);letter-spacing:.8px;opacity:0;transition:opacity .2s}
+.anim-label.show{opacity:1}
+.footer-controls{max-width:500px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ctrl-btn{padding:14px 10px;border-radius:14px;border:none;cursor:pointer;font-size:.85rem;font-weight:600;touch-action:manipulation}
+.ctrl-btn:active{transform:scale(.95);opacity:.85}
+.ctrl-save{background:rgba(16,185,129,.18);color:#34d399;border:1px solid rgba(16,185,129,.3)}
+.ctrl-history{background:rgba(251,191,36,.18);color:#fbbf24;border:1px solid rgba(251,191,36,.3)}
+.ctrl-reset{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.ctrl-edit{background:rgba(167,139,250,.15);color:#c4b5fd;border:1px solid rgba(167,139,250,.3)}
+.save-note{color:rgba(255,255,255,.28);font-size:.7rem;margin-top:12px;text-align:center;line-height:1.6}
+#history-panel{display:none;max-width:500px;margin:0 auto 18px;background:rgba(255,255,255,.07);border-radius:20px;padding:18px 14px;border:1px solid rgba(255,255,255,.1)}
+#history-panel h3{color:#c4b5fd;margin-bottom:12px;font-size:.95rem}
+.history-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.history-table th{color:#a78bfa;text-align:left;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.1);font-weight:600}
+.history-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.06);color:rgba(255,255,255,.8)}
+.history-table tr:last-child td{border-bottom:none}
+.no-history{color:rgba(255,255,255,.35);font-size:.85rem;text-align:center;padding:10px 0}
+
+/* Badges */
+.badges-page{max-width:500px;margin:0 auto}
+.child-switcher{display:flex;gap:8px;margin-bottom:18px}
+.child-sw-btn{flex:1;padding:12px 8px;border-radius:14px;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);font-size:.9rem;font-weight:700;cursor:pointer;touch-action:manipulation;transition:all .2s;text-align:center}
+.child-sw-btn.active{border-color:#a78bfa;background:rgba(167,139,250,.18);color:#c4b5fd}
+.child-sw-btn:active{opacity:.7}
+.badge-progress{background:rgba(255,255,255,.06);border-radius:16px;padding:14px 16px;margin-bottom:14px;border:1px solid rgba(255,255,255,.08)}
+.badge-progress-bar{height:6px;border-radius:3px;background:rgba(255,255,255,.1);margin-bottom:4px;overflow:hidden}
+.badge-progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#7c3aed,#a78bfa);transition:width .5s ease}
+.badge-progress-text{font-size:.72rem;color:rgba(255,255,255,.4);text-align:right}
+.badge-category{margin-bottom:18px}
+.badge-cat-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.badge-cat-icon{font-size:1.3rem}
+.badge-cat-title{font-size:.85rem;font-weight:700;color:#c4b5fd;letter-spacing:.8px;text-transform:uppercase}
+.badge-cat-count{margin-left:auto;font-size:.72rem;color:rgba(255,255,255,.35);background:rgba(255,255,255,.07);padding:2px 8px;border-radius:10px}
+.badge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.badge-item{background:rgba(255,255,255,.06);border-radius:14px;padding:10px 6px;text-align:center;border:2px solid rgba(255,255,255,.08);cursor:pointer;touch-action:manipulation;transition:all .2s;position:relative}
+.badge-item.earned{background:rgba(167,139,250,.15);border-color:#a78bfa}
+.badge-item:not(.earned) .badge-icon{filter:grayscale(1) opacity(.35)}
+.badge-item:active{transform:scale(.93)}
+.badge-icon{font-size:1.8rem;display:block;margin-bottom:4px}
+.badge-name{font-size:.62rem;color:rgba(255,255,255,.7);line-height:1.3;font-weight:600}
+.badge-item.earned .badge-name{color:#c4b5fd}
+.badge-date{font-size:.55rem;color:rgba(167,139,250,.7);margin-top:3px;line-height:1.2}
+.badge-tick{position:absolute;top:5px;right:5px;font-size:.7rem;opacity:0;transition:opacity .2s}
+.badge-item.earned .badge-tick{opacity:1}
+
+#toast{position:fixed;bottom:max(env(safe-area-inset-bottom),20px);left:50%;transform:translateX(-50%) translateY(100px);background:#10b981;color:#fff;padding:12px 22px;border-radius:14px;font-weight:600;font-size:.9rem;transition:transform .3s ease;z-index:1000;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#burst{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999}
+</style>
+</head>
+<body>
+<h1>⭐ Dojo Tracker</h1>
+<p class="subtitle">Family Rewards & Swimming Badges</p>
+
+<div id="setup-screen">
+  <div id="setup">
+    <h2>👨‍👩‍👧‍👦 Set Up Your Children</h2>
+    <div id="children-inputs"></div>
+    <button class="start-btn" onclick="startTracker()">Start Tracking! 🚀</button>
+  </div>
+</div>
+
+<div id="app-screen" style="display:none">
+  <div id="sync-bar">
+    <div class="sync-dot" id="sync-dot"></div>
+    <span id="sync-text">Connecting…</span>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showPage('dojo')">⭐ Dojos</button>
+    <button class="tab" onclick="showPage('badges')">🏅 Badges</button>
+  </div>
+
+  <div id="page-dojo" class="page active">
+    <div class="grid" id="grid"></div>
+    <div id="history-panel">
+      <h3>📅 Saved Sessions</h3>
+      <div id="history-content"></div>
+    </div>
+    <div class="footer-controls">
+      <button class="ctrl-btn ctrl-save"    onclick="saveSession()">💾 Save Session</button>
+      <button class="ctrl-btn ctrl-history" onclick="toggleHistory()">📅 History</button>
+      <button class="ctrl-btn ctrl-reset"   onclick="confirmReset()">🔄 Reset Points</button>
+      <button class="ctrl-btn ctrl-edit"    onclick="editMode()">✏️ Edit</button>
+    </div>
+    <p class="save-note">Changes sync to all devices instantly.<br>Tap 💾 Save Session to log a daily/weekly snapshot.</p>
+  </div>
+
+  <div id="page-badges" class="page">
+    <div class="badges-page">
+      <div class="child-switcher" id="child-switcher"></div>
+      <div id="badge-progress-section"></div>
+      <div id="badge-categories"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<canvas id="burst"></canvas>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue, set, get } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+/* ═══════════════════════════════════════════
+   🔧 PASTE YOUR FIREBASE CONFIG HERE
+   Replace every value below with yours
+═══════════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey:            "AIzaSyC9-CPZe1iSdrUWJJZLEi54jDFjDDm24Z8",
+  authDomain:        "dojo-tracker-8bb31.firebaseapp.com",
+  databaseURL:       "https://dojo-tracker-8bb31-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:         "dojo-tracker-8bb31",
+  storageBucket:     "dojo-tracker-8bb31.firebasestorage.app",
+  messagingSenderId: "743780069854",
+  appId:             "1:743780069854:web:7f8743db72f537cc9d6d4f"
+};
+/* ═══════════════════════════════════════════ */
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+/* helpers */
+const dbSet  = (path, val) => set(ref(db, path), val);
+const dbLive = (path, cb) => onValue(ref(db, path), snap => cb(snap.val()));
+
+setSyncStatus('connecting');
+
+/* ═══════════════════════════════════════════
+   DATA DEFINITIONS
+═══════════════════════════════════════════ */
+const AVATARS = ['🐉','🦄','🐺','🦊','🐸','🐼','🦁','🐯','🐻','🦋','🐨','🐙'];
+
+const BADGE_CATEGORIES = [
+  { id:'beginner', icon:'🌊', title:'Beginner', badges:[
+    {id:'b1',icon:'🤿',name:'Water Confidence'},{id:'b2',icon:'🫁',name:'Blowing Bubbles'},
+    {id:'b3',icon:'🤸',name:'Floating on Back'},{id:'b4',icon:'🌀',name:'Floating on Front'},
+    {id:'b5',icon:'🦶',name:'Kicking'},{id:'b6',icon:'🤲',name:'Arm Movements'},
+  ]},
+  { id:'strokes', icon:'🏊', title:'Stroke Development', badges:[
+    {id:'s1',icon:'💨',name:'Freestyle Arms'},{id:'s2',icon:'🔄',name:'Freestyle Kick'},
+    {id:'s3',icon:'🏊',name:'Freestyle 5m'},{id:'s4',icon:'🔙',name:'Backstroke Arms'},
+    {id:'s5',icon:'🌙',name:'Backstroke Kick'},{id:'s6',icon:'🔀',name:'Backstroke 5m'},
+  ]},
+  { id:'distance', icon:'📏', title:'Distance Milestones', badges:[
+    {id:'d1',icon:'🥉',name:'5 Metres'},{id:'d2',icon:'🥈',name:'10 Metres'},
+    {id:'d3',icon:'🎽',name:'25 Metres'},{id:'d4',icon:'🥇',name:'50 Metres'},
+    {id:'d5',icon:'🏆',name:'100 Metres'},{id:'d6',icon:'🌟',name:'200 Metres'},
+  ]},
+  { id:'safety', icon:'🛟', title:'Safety Skills', badges:[
+    {id:'w1',icon:'🦺',name:'Jumping In'},{id:'w2',icon:'💪',name:'Treading Water'},
+    {id:'w3',icon:'🔃',name:'Roll & Float'},{id:'w4',icon:'📣',name:'Calling for Help'},
+    {id:'w5',icon:'🪢',name:'Reaching Rescue'},{id:'w6',icon:'🏁',name:'Pool Exit'},
+  ]},
+];
+
+const TOTAL_BADGES = BADGE_CATEGORIES.reduce((s,c)=>s+c.badges.length, 0);
+
+/* app state — always reflects what's in Firebase */
+let children = [], histVis = false, activeBadgeChild = 0;
+let badgeData = {0:{}, 1:{}};
+let sessionHistory = [];
+let _ignoreNextSync = false; // stop echo on own writes
+
+/* ═══════════════════════════════════════════
+   SYNC STATUS
+═══════════════════════════════════════════ */
+function setSyncStatus(s) {
+  const dot  = document.getElementById('sync-dot');
+  const text = document.getElementById('sync-text');
+  if (s === 'live')        { dot.className='sync-dot live'; text.textContent='Synced — changes appear on all devices'; }
+  else if (s === 'saving') { dot.className='sync-dot live'; text.textContent='Saving…'; }
+  else if (s === 'error')  { dot.className='sync-dot error'; text.textContent='Offline — changes saved locally'; }
+  else                     { dot.className='sync-dot'; text.textContent='Connecting…'; }
+}
+
+/* ═══════════════════════════════════════════
+   FIREBASE LISTENERS  (real-time sync)
+═══════════════════════════════════════════ */
+function startListeners() {
+  // Children / points
+  dbLive('children', val => {
+    if (!val) return;
+    if (_ignoreNextSync) { _ignoreNextSync = false; return; }
+    children = val;
+    if (document.getElementById('app-screen').style.display !== 'none') renderDojo();
+    setSyncStatus('live');
+  });
+
+  // Badges
+  dbLive('badges', val => {
+    if (val) { badgeData = val; if (document.getElementById('page-badges').classList.contains('active')) renderBadges(); }
+  });
+
+  // History
+  dbLive('history', val => {
+    if (val) sessionHistory = val;
+    if (histVis) renderHistory();
+  });
+}
+
+/* ═══════════════════════════════════════════
+   WRITE HELPERS
+═══════════════════════════════════════════ */
+async function pushChildren() {
+  _ignoreNextSync = true;
+  setSyncStatus('saving');
+  try { await dbSet('children', children); setSyncStatus('live'); }
+  catch(e) { setSyncStatus('error'); _ignoreNextSync = false; }
+}
+async function pushBadges() {
+  setSyncStatus('saving');
+  try { await dbSet('badges', badgeData); setSyncStatus('live'); }
+  catch(e) { setSyncStatus('error'); }
+}
+async function pushHistory() {
+  try { await dbSet('history', sessionHistory); }
+  catch(e) {}
+}
+
+/* ═══════════════════════════════════════════
+   SETUP
+═══════════════════════════════════════════ */
+function buildSetup(data) {
+  const c = document.getElementById('children-inputs'); c.innerHTML = '';
+  for (let i = 0; i < 2; i++) {
+    const nm = data?.[i]?.name||'', av = data?.[i]?.avatar||AVATARS[i];
+    const d = document.createElement('div'); d.className = 'child-entry';
+    d.innerHTML = `<label>CHILD ${i+1}</label>
+      <input type="text" placeholder="Enter name" value="${nm}" maxlength="16" id="ni-${i}" autocomplete="off"/>
+      <div class="avatar-pick" id="ap-${i}">
+        ${AVATARS.map(a=>`<span onclick="selAv(this,${i})" data-a="${a}" class="${a===av?'selected':''}">${a}</span>`).join('')}
+      </div>${i===0?'<hr class="divider">':''}`;
+    c.appendChild(d);
+  }
+}
+window.selAv = (el,i) => {
+  document.querySelectorAll(`#ap-${i} span`).forEach(s=>s.classList.remove('selected'));
+  el.classList.add('selected');
+};
+
+window.startTracker = async () => {
+  // Check if Firebase already has children saved
+  const snap = await get(ref(db, 'children'));
+  const existing = snap.val();
+  children = Array.from({length:2}, (_,i) => {
+    const nm = document.getElementById(`ni-${i}`).value.trim() || `Child ${i+1}`;
+    const av = document.querySelector(`#ap-${i} .selected`)?.dataset.a || AVATARS[i];
+    const pts = existing?.[i]?.name === nm ? (existing[i].points||0) : 0;
+    return { name:nm, avatar:av, points:pts };
+  });
+  await pushChildren();
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  startListeners();
+  renderDojo();
+  renderBadges();
+};
+
+/* ═══════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════ */
+window.showPage = p => {
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById(`page-${p}`).classList.add('active');
+  document.querySelectorAll('.tab').forEach(el=>{ if(el.textContent.toLowerCase().includes(p==='dojo'?'dojo':'badge')) el.classList.add('active'); });
+};
+
+/* ═══════════════════════════════════════════
+   DOJO
+═══════════════════════════════════════════ */
+function renderDojo() {
+  const grid = document.getElementById('grid'); grid.innerHTML = '';
+  const max = Math.max(...children.map(c=>c.points));
+  children.forEach((c,i) => {
+    const isL = c.points>0 && c.points===max;
+    const card = document.createElement('div');
+    card.id=`card-${i}`; card.className='card';
+    card.innerHTML=`<canvas id="cv-${i}" width="240" height="240"></canvas>
+      ${isL?`<div class="leader-badge">👑 LEADER</div>`:''}
+      <div class="child-name">${c.name}</div>
+      <span class="avatar-btn" id="av-${i}" onclick="addPoint(${i})">${c.avatar}</span>
+      <div class="tap-hint">TAP TO GIVE DOJO</div>
+      <div class="score" id="sc-${i}">${c.points}</div>
+      <div class="score-label">DOJOS</div>
+      <div class="anim-label" id="al-${i}"></div>`;
+    grid.appendChild(card);
+  });
+}
+
+window.addPoint = async i => {
+  children[i].points++;
+  const el = document.getElementById(`sc-${i}`);
+  el.textContent = children[i].points;
+  animateScore(el);
+  const anim = pickAnim(i);
+  const cv = document.getElementById(`cv-${i}`);
+  anim.run(cv.getContext('2d'), cv.width, cv.height);
+  const lbl = document.getElementById(`al-${i}`);
+  lbl.textContent = anim.name; lbl.classList.add('show');
+  setTimeout(()=>lbl.classList.remove('show'), 900);
+  if (children[i].points % 2 === 0) bigBurst();
+  updateLeaders();
+  await pushChildren();
+};
+
+function updateLeaders() {
+  const max = Math.max(...children.map(c=>c.points));
+  children.forEach((c,i) => {
+    const card = document.getElementById(`card-${i}`);
+    let b = card.querySelector('.leader-badge');
+    if (c.points>0 && c.points===max) {
+      if (!b) { b=document.createElement('div'); b.className='leader-badge'; card.appendChild(b); }
+      b.textContent = '👑 LEADER';
+    } else if (b) b.remove();
+  });
+}
+
+window.saveSession = async () => {
+  const now = new Date();
+  const label = now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' '+now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  sessionHistory.unshift({date:label, scores:children.map(c=>({name:c.name,avatar:c.avatar,points:c.points}))});
+  if (sessionHistory.length>30) sessionHistory.pop();
+  await pushHistory();
+  showToast('✅ Session saved!');
+  if (histVis) renderHistory();
+};
+
+window.toggleHistory = () => {
+  histVis = !histVis;
+  document.getElementById('history-panel').style.display = histVis?'block':'none';
+  if (histVis) renderHistory();
+};
+
+function renderHistory() {
+  const el = document.getElementById('history-content');
+  if (!sessionHistory.length) { el.innerHTML='<p class="no-history">No saved sessions yet.</p>'; return; }
+  el.innerHTML=`<table class="history-table">
+    <thead><tr><th>Date</th>${children.map(c=>`<th>${c.avatar} ${c.name}</th>`).join('')}<th></th></tr></thead>
+    <tbody>${sessionHistory.map((h,idx)=>`<tr><td>${h.date}</td>${h.scores.map(s=>`<td><strong>${s.points}</strong> pts</td>`).join('')}
+    <td><span onclick="delSession(${idx})" style="cursor:pointer;color:#f87171;padding:4px 6px;display:inline-block">✕</span></td></tr>`).join('')}</tbody>
+  </table>`;
+}
+
+window.delSession = async idx => {
+  sessionHistory.splice(idx,1); await pushHistory(); renderHistory();
+};
+
+window.confirmReset = async () => {
+  if (confirm('Reset all points to 0?\n(Tip: save the session first!)')) {
+    children.forEach(c=>c.points=0); renderDojo(); await pushChildren();
+  }
+};
+
+window.editMode = () => {
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('setup-screen').style.display='block';
+  buildSetup(children);
+};
+
+/* ═══════════════════════════════════════════
+   BADGES
+═══════════════════════════════════════════ */
+function renderBadges() {
+  const sw = document.getElementById('child-switcher'); sw.innerHTML='';
+  children.forEach((c,i) => {
+    const btn = document.createElement('button');
+    btn.className = 'child-sw-btn'+(i===activeBadgeChild?' active':'');
+    btn.innerHTML = `${c.avatar} ${c.name}`;
+    btn.onclick = () => { activeBadgeChild=i; renderBadges(); };
+    sw.appendChild(btn);
+  });
+  const cb = badgeData[activeBadgeChild]||{};
+  const earned = Object.keys(cb).length;
+  const pct = Math.round(earned/TOTAL_BADGES*100);
+  document.getElementById('badge-progress-section').innerHTML=`<div class="badge-progress">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:.82rem;color:#c4b5fd;font-weight:700">${children[activeBadgeChild].name}'s Progress</span>
+      <span style="font-size:.82rem;color:#a78bfa;font-weight:700">${earned}/${TOTAL_BADGES}</span>
+    </div>
+    <div class="badge-progress-bar"><div class="badge-progress-fill" style="width:${pct}%"></div></div>
+    <div class="badge-progress-text">${pct}% complete</div>
+  </div>`;
+  const cats = document.getElementById('badge-categories'); cats.innerHTML='';
+  BADGE_CATEGORIES.forEach(cat => {
+    const earnedInCat = cat.badges.filter(b=>cb[b.id]).length;
+    const d = document.createElement('div'); d.className='badge-category';
+    d.innerHTML=`<div class="badge-cat-header">
+      <span class="badge-cat-icon">${cat.icon}</span>
+      <span class="badge-cat-title">${cat.title}</span>
+      <span class="badge-cat-count">${earnedInCat}/${cat.badges.length}</span>
+    </div>
+    <div class="badge-grid">
+      ${cat.badges.map(b=>{
+        const isE=!!cb[b.id];
+        return `<div class="badge-item${isE?' earned':''}" onclick="toggleBadge('${b.id}')">
+          <span class="badge-tick">✓</span>
+          <span class="badge-icon">${b.icon}</span>
+          <div class="badge-name">${b.name}</div>
+          ${isE?`<div class="badge-date">${cb[b.id]}</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
+    cats.appendChild(d);
+  });
+}
+
+window.toggleBadge = async id => {
+  if (!badgeData[activeBadgeChild]) badgeData[activeBadgeChild]={};
+  const cb = badgeData[activeBadgeChild];
+  if (cb[id]) {
+    if (!confirm('Remove this badge?')) return;
+    delete cb[id]; showToast('Badge removed');
+  } else {
+    cb[id] = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    showToast('🏅 Badge awarded!'); badgeBurst();
+  }
+  await pushBadges(); renderBadges();
+};
+
+/* ═══════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════ */
+const lastAnim=[-1,-1];
+const R=Math.random, ri=n=>~~(R()*n);
+function mk(n,w,h,extra){return Array.from({length:n},()=>Object.assign({x:w/2,y:h*.45,life:1},extra()))}
+function loop(ctx,w,h,p){const f=()=>{ctx.clearRect(0,0,w,h);p=p.filter(q=>q.life>0);p.forEach(q=>{ctx.globalAlpha=q.life;if(q.rot!==undefined){ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.rot);ctx.font=`${q.sz}px serif`;ctx.fillText(q.e,-q.sz/2,q.sz/2);ctx.restore();q.rot+=q.rv||0}else{ctx.font=`${q.sz+(q.fl?Math.sin(q.fl)*2:0)}px serif`;ctx.fillText(q.e,q.x+(q.fl?Math.sin(q.fl)*3:0)+(q.wb?Math.sin(q.wb)*3:0),q.y);}q.x+=q.vx||0;q.y+=q.vy||0;if(q.grav)q.vy+=.22;if(q.wb)q.wb+=q.wbr||.15;if(q.fl)q.fl+=q.flr||0;q.life-=q.fade||.03});ctx.globalAlpha=1;p.length?requestAnimationFrame(f):ctx.clearRect(0,0,w,h)};f()}
+function loopCirc(ctx,w,h,p){const f=()=>{ctx.clearRect(0,0,w,h);p=p.filter(q=>q.life>0);p.forEach(q=>{ctx.globalAlpha=q.life;ctx.fillStyle=q.col;ctx.beginPath();ctx.arc(q.x,q.y,q.r,0,Math.PI*2);ctx.fill();q.x+=q.vx;q.y+=q.vy;q.vy+=.15;q.r*=.97;q.life-=.025});ctx.globalAlpha=1;p.length?requestAnimationFrame(f):ctx.clearRect(0,0,w,h)};f()}
+function loopBubble(ctx,w,h,p){const f=()=>{ctx.clearRect(0,0,w,h);p=p.filter(q=>q.life>0&&q.y>-30);p.forEach(q=>{ctx.globalAlpha=q.life*.6;ctx.strokeStyle='#a78bfa';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(q.x+Math.sin(q.wb)*4,q.y,q.r,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=q.life*.15;ctx.fillStyle='#c4b5fd';ctx.fill();q.y+=q.vy;q.wb+=.08;q.life-=.012});ctx.globalAlpha=1;p.length?requestAnimationFrame(f):ctx.clearRect(0,0,w,h)};f()}
+function loopDot(ctx,w,h,p){const f=()=>{ctx.clearRect(0,0,w,h);p=p.filter(q=>q.life>0);p.forEach(q=>{ctx.globalAlpha=q.life;ctx.fillStyle=q.col;ctx.beginPath();ctx.arc(q.x,q.y,q.sz,0,Math.PI*2);ctx.fill();q.x+=q.vx;q.y+=q.vy;q.vy+=.2;q.life-=.028});ctx.globalAlpha=1;p.length?requestAnimationFrame(f):ctx.clearRect(0,0,w,h)};f()}
+function loopWave(ctx,w,h,p){const f=()=>{ctx.clearRect(0,0,w,h);p=p.filter(q=>q.life>0&&q.x<w+30);p.forEach(q=>{ctx.globalAlpha=q.life;ctx.font=`${q.sz}px serif`;ctx.fillText(q.e,q.x,q.y+Math.sin(q.x*.05)*8);q.x+=q.vx;q.y+=q.vy;q.life-=.022});ctx.globalAlpha=1;p.length?requestAnimationFrame(f):ctx.clearRect(0,0,w,h)};f()}
+function loopMagic(ctx,w,h,p){const f=()=>{ctx.clearRect(0,0,w,h);p=p.filter(q=>q.life>0);p.forEach(q=>{const r=q.sp*q.t;ctx.globalAlpha=q.life;ctx.font=`${q.sz}px serif`;ctx.fillText(q.e,q.x+Math.cos(q.ang+q.t*.1)*r,q.y+Math.sin(q.ang+q.t*.1)*r*.7);q.t+=.6;q.life-=.02});ctx.globalAlpha=1;p.length?requestAnimationFrame(f):ctx.clearRect(0,0,w,h)};f()}
+function loopConf(ctx,w,h,p){const f=()=>{ctx.clearRect(0,0,w,h);p=p.filter(q=>q.life>0);p.forEach(q=>{ctx.save();ctx.globalAlpha=q.life;ctx.fillStyle=q.col;ctx.translate(q.x,q.y);ctx.rotate(q.rot);ctx.fillRect(-q.wd/2,-q.ht/2,q.wd,q.ht);ctx.restore();q.x+=q.vx;q.y+=q.vy;q.vy+=.15;q.rot+=q.rv;q.life-=.02});ctx.globalAlpha=1;p.length?requestAnimationFrame(f):ctx.clearRect(0,0,w,h)};f()}
+
+const ANIMATIONS=[
+  {name:'⭐ STARS',   run(c,w,h){loop(c,w,h,mk(25,w,h,()=>({vx:(R()-.5)*8,vy:(R()-1.4)*9,e:['⭐','🌟','✨'][ri(3)],sz:R()*14+9,grav:true})))} },
+  {name:'💥 BURST',   run(c,w,h){const cols=['#f59e0b','#ef4444','#3b82f6','#10b981','#8b5cf6','#ec4899'];loopCirc(c,w,h,Array.from({length:30},()=>{const a=R()*Math.PI*2,s=R()*6+3;return{x:w/2,y:h*.45,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:R()*5+3,col:cols[ri(6)],life:1}}))} },
+  {name:'❤️ HEARTS',  run(c,w,h){loop(c,w,h,mk(18,w,h,()=>({vx:(R()-.5)*2,vy:-(R()*3+2),e:['❤️','🧡','💛','💚','💜','💙'][ri(6)],sz:R()*16+10,wb:R()*Math.PI*2,wbr:.15})))} },
+  {name:'🫧 BUBBLES', run(c,w,h){loopBubble(c,w,h,Array.from({length:20},()=>({x:R()*w,y:h+20,vy:-(R()*2+1.5),r:R()*14+6,life:1,wb:R()*Math.PI*2})))} },
+  {name:'🌈 RAINBOW', run(c,w,h){loopDot(c,w,h,mk(22,w,h,()=>({vx:(R()-.5)*9,vy:(R()-1.3)*8,col:`hsl(${ri(360)},90%,65%)`,sz:R()*8+4})))} },
+  {name:'⚡ LIGHTNING',run(c,w,h){loop(c,w,h,mk(20,w,h,()=>({vx:(R()-.5)*10,vy:(R()-1.5)*10,e:['⚡','💫','✴️'][ri(3)],sz:R()*13+8,grav:true,fade:.035})))} },
+  {name:'🍀 LUCKY',   run(c,w,h){loop(c,w,h,mk(16,w,h,()=>({vx:(R()-.5)*3,vy:-(R()*4+1),e:['🍀','🌸','🌺','🌻','🌼'][ri(5)],sz:R()*16+10,rot:R()*Math.PI*2,rv:(R()-.5)*.2})))} },
+  {name:'🌊 WAVE',    run(c,w,h){loopWave(c,w,h,Array.from({length:24},()=>({x:-(R()*w*.3),y:h*.4+R()*h*.2,vx:R()*5+3,vy:(R()-.5)*1.5,e:['🌊','💧','❄️'][ri(3)],sz:R()*13+8,life:1})))} },
+  {name:'🔥 FIRE',    run(c,w,h){loop(c,w,h,mk(22,w,h,()=>({vx:(R()-.5)*2.5,vy:-(R()*5+2),e:['🔥','💥','✨'][ri(3)],sz:R()*15+9,fl:R()*Math.PI*2,flr:.3})))} },
+  {name:'🎯 SPIRAL',  run(c,w,h){let a=0,p=[];const iv=setInterval(()=>{const r=a*3;p.push({x:w/2+Math.cos(a)*r,y:h*.45+Math.sin(a)*r*.6,e:['🌟','⭐','✨'][ri(3)],sz:R()*10+7,life:1});a+=.45;if(a>Math.PI*4)clearInterval(iv)},30);const f=()=>{c.clearRect(0,0,w,h);p=p.filter(q=>q.life>0);p.forEach(q=>{c.globalAlpha=q.life;c.font=`${q.sz}px serif`;c.fillText(q.e,q.x,q.y);q.life-=.018});c.globalAlpha=1;(p.length||a<Math.PI*4)?requestAnimationFrame(f):c.clearRect(0,0,w,h)};f()} },
+  {name:'🪄 MAGIC',   run(c,w,h){loopMagic(c,w,h,Array.from({length:28},()=>({x:w/2,y:h*.45,ang:R()*Math.PI*2,sp:R()*4+2,e:['🪄','✨','💫','🌟'][ri(4)],sz:R()*12+8,life:1,t:0})))} },
+  {name:'🎊 CONFETTI',run(c,w,h){const cols=['#f59e0b','#ef4444','#3b82f6','#10b981','#8b5cf6','#ec4899','#f97316'];loopConf(c,w,h,Array.from({length:30},()=>({x:w/2+(R()-.5)*40,y:h*.3,vx:(R()-.5)*5,vy:-(R()*3+1),wd:R()*10+4,ht:R()*5+3,rot:R()*Math.PI*2,rv:(R()-.5)*.2,col:cols[ri(7)],life:1})))} },
+];
+
+function pickAnim(ci){let i;do{i=ri(ANIMATIONS.length)}while(i===lastAnim[ci]);lastAnim[ci]=i;return ANIMATIONS[i]}
+const SA=['pop','shake','spin','bounce']; let lastSA=-1;
+function animateScore(el){let i;do{i=ri(4)}while(i===lastSA);lastSA=i;el.classList.remove(...SA);void el.offsetWidth;el.classList.add(SA[i])}
+
+function bigBurst(){const cv=document.getElementById('burst'),ctx=cv.getContext('2d');cv.width=innerWidth;cv.height=innerHeight;const em=['🎉','🌟','⭐','✨','🎊','💥','🏆','🎈','🍀','❤️','🔥','⚡'];let p=Array.from({length:80},()=>({x:R()*cv.width,y:-30,vx:(R()-.5)*5,vy:R()*6+2,e:em[ri(12)],sz:R()*26+14,life:1}));const f=()=>{ctx.clearRect(0,0,cv.width,cv.height);p=p.filter(q=>q.life>0&&q.y<cv.height+50);p.forEach(q=>{ctx.globalAlpha=q.life;ctx.font=`${q.sz}px serif`;ctx.fillText(q.e,q.x,q.y);q.x+=q.vx;q.y+=q.vy;q.life-=.006});ctx.globalAlpha=1;p.length?requestAnimationFrame(f):ctx.clearRect(0,0,cv.width,cv.height)};f()}
+function badgeBurst(){const cv=document.getElementById('burst'),ctx=cv.getContext('2d');cv.width=innerWidth;cv.height=innerHeight;const em=['🏅','⭐','✨','🌟','🎉','🏊','💫','🎊'];let p=Array.from({length:55},()=>({x:R()*cv.width,y:-30,vx:(R()-.5)*4,vy:R()*5+2,e:em[ri(8)],sz:R()*22+14,life:1}));const f=()=>{ctx.clearRect(0,0,cv.width,cv.height);p=p.filter(q=>q.life>0&&q.y<cv.height+50);p.forEach(q=>{ctx.globalAlpha=q.life;ctx.font=`${q.sz}px serif`;ctx.fillText(q.e,q.x,q.y);q.x+=q.vx;q.y+=q.vy;q.life-=.008});ctx.globalAlpha=1;p.length?requestAnimationFrame(f):ctx.clearRect(0,0,cv.width,cv.height)};f()}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+
+/* ═══════════════════════════════════════════
+   INIT — check Firebase for existing data
+═══════════════════════════════════════════ */
+(async () => {
+  try {
+    const snap = await get(ref(db, 'children'));
+    if (snap.val()) {
+      children = snap.val();
+      const bsnap = await get(ref(db, 'badges'));
+      if (bsnap.val()) badgeData = bsnap.val();
+      const hsnap = await get(ref(db, 'history'));
+      if (hsnap.val()) sessionHistory = hsnap.val();
+      document.getElementById('setup-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = 'block';
+      startListeners();
+      renderDojo();
+      renderBadges();
+    } else {
+      buildSetup(null);
+      startListeners();
+    }
+    setSyncStatus('live');
+  } catch(e) {
+    setSyncStatus('error');
+    buildSetup(null);
+  }
+})();
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
