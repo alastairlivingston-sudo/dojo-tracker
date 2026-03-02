@@ -188,7 +188,7 @@ setSyncStatus('connecting');
 /* ═══════════════════════════════════════════
    DATA DEFINITIONS
 ═══════════════════════════════════════════ */
-const AVATARS = ['🐉','🦄','🐺','🦊','🐸','🐼','🦁','🐯','🐻','🦋','🐨','🐙','🦅','🐬','🦖','🐧','🦓','🦒','🦜','🦈','🦘'];
+const AVATARS = ['🐉','🦄','🐺','🦊','🐸','🐼','🦁','🐯','🐻','🦋','🐨','🐙','🦅','🐬','🦖','🐧','🦓','🦒','🦘','🦈'];
 
 const BADGE_CATEGORIES = [
   { id:'beginner', icon:'🌊', title:'Beginner', badges:[
@@ -554,10 +554,6 @@ const AVATAR_ANIMS = {
   '🦒': [
     {name:'⭐ GIRAFFE STARS',  run(c,w,h){loop(c,w,h,mk(18,w,h,()=>({vx:(R()-.5)*1.5,vy:-(R()*6+4),e:['⭐','🌟','✨','🌠'][ri(4)],sz:R()*16+10,fade:.014})))}},
     {name:'🌀 GIRAFFE SPIRAL', run(c,w,h){loopMagic(c,w,h,Array.from({length:24},()=>({x:w/2,y:h*.45,ang:R()*Math.PI*2,sp:R()*6+3,e:['⭐','🌟','🌠','✨'][ri(4)],sz:R()*12+7,life:1,t:0})))}}
-  ],
-  '🦜': [
-    {name:'🌈 PARROT FEATHERS',run(c,w,h){loop(c,w,h,mk(24,w,h,()=>({vx:(R()-.5)*8,vy:(R()-1.2)*8,e:['🦜','🌈','💚','❤️','💛','💙'][ri(6)],sz:R()*14+9,rot:R()*Math.PI*2,rv:(R()-.5)*.2,grav:true,fade:.025})))}},
-    {name:'🎨 PARROT RAINBOW', run(c,w,h){loopDot(c,w,h,mk(28,w,h,()=>({vx:(R()-.5)*10,vy:(R()-1.3)*9,col:`hsl(${ri(360)},95%,60%)`,sz:R()*8+4})))}}
   ],
   '🦈': [
     {name:'🦈 SHARK ATTACK',   run(c,w,h){loopWave(c,w,h,Array.from({length:26},()=>({x:-(R()*w*.5),y:h*.3+R()*h*.3,vx:R()*7+4,vy:(R()-.5)*2,e:['🦈','🌊','💧','⚡'][ri(4)],sz:R()*14+8,life:1})))}},
