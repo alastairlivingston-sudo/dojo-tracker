@@ -108,6 +108,11 @@ h1{text-align:center;font-size:clamp(1.5rem,6vw,2rem);margin-bottom:4px;text-sha
 
 #toast{position:fixed;bottom:max(env(safe-area-inset-bottom),20px);left:50%;transform:translateX(-50%) translateY(100px);background:#10b981;color:#fff;padding:12px 22px;border-radius:14px;font-weight:600;font-size:.9rem;transition:transform .3s ease;z-index:1000;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 #toast.show{transform:translateX(-50%) translateY(0)}
+#undo-bar{display:none;max-width:500px;margin:0 auto 10px;background:rgba(255,255,255,.08);border-radius:14px;padding:10px 14px;border:1px solid rgba(255,255,255,.12);align-items:center;gap:10px}
+#undo-bar.show{display:flex}
+.undo-text{flex:1;font-size:.82rem;color:rgba(255,255,255,.65)}
+.undo-btn{padding:7px 16px;border-radius:10px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.18);color:#f87171;font-weight:700;font-size:.82rem;cursor:pointer;touch-action:manipulation;flex-shrink:0}
+.undo-btn:active{opacity:.7}
 #burst{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999}
 </style>
 </head>
@@ -131,6 +136,10 @@ h1{text-align:center;font-size:clamp(1.5rem,6vw,2rem);margin-bottom:4px;text-sha
 
   <div id="page-dojo" class="page active">
     <div class="grid" id="grid"></div>
+    <div id="undo-bar">
+      <span class="undo-text" id="undo-text"></span>
+      <button class="undo-btn" onclick="undoLast()">↩ Undo</button>
+    </div>
     <div id="history-panel">
       <h3>📅 Saved Sessions</h3>
       <div id="history-content"></div>
@@ -228,6 +237,7 @@ let children = [], histVis = false, activeBadgeChild = 0;
 let badgeData = {0:{}, 1:{}};
 let sessionHistory = [];
 let _ignoreNextSync = false; // stop echo on own writes
+let lastAction = null, undoTimer = null;
 
 /* ═══════════════════════════════════════════
    SYNC STATUS
@@ -355,6 +365,7 @@ function renderDojo() {
 }
 
 window.addPoint = async i => {
+  lastAction = { childIndex: i, previousPoints: children[i].points };
   children[i].points++;
   const el = document.getElementById(`sc-${i}`);
   el.textContent = children[i].points;
@@ -370,6 +381,28 @@ window.addPoint = async i => {
   lbl.textContent = anim.name; lbl.classList.add('show');
   setTimeout(()=>lbl.classList.remove('show'), 900);
   if (children[i].points % 2 === 0) bigBurst();
+  showUndoBar(children[i].name, i);
+  await pushChildren();
+};
+
+function showUndoBar(childName) {
+  if (undoTimer) clearTimeout(undoTimer);
+  document.getElementById('undo-text').textContent = `Added dojo to ${childName}`;
+  document.getElementById('undo-bar').classList.add('show');
+  undoTimer = setTimeout(hideUndoBar, 5000);
+}
+function hideUndoBar() {
+  document.getElementById('undo-bar').classList.remove('show');
+  lastAction = null; undoTimer = null;
+}
+window.undoLast = async () => {
+  if (!lastAction) return;
+  const { childIndex, previousPoints } = lastAction;
+  children[childIndex].points = previousPoints;
+  document.getElementById(`sc-${childIndex}`).textContent = previousPoints;
+  const name = children[childIndex].name;
+  hideUndoBar();
+  showToast(`↩ Undone for ${name}`);
   await pushChildren();
 };
 
