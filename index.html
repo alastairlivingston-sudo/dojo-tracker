@@ -59,16 +59,16 @@ h1{text-align:center;font-size:clamp(1.5rem,6vw,2rem);margin-bottom:4px;text-sha
 .score-label{font-size:.65rem;color:rgba(255,255,255,.35);letter-spacing:1px}
 .anim-label{position:absolute;bottom:10px;left:0;right:0;font-size:.6rem;color:rgba(255,255,255,.4);letter-spacing:.8px;opacity:0;transition:opacity .2s}
 .anim-label.show{opacity:1}
-.footer-controls{max-width:500px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr 1fr;gap:10px}
+.footer-controls{max-width:500px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;gap:10px}
 .ctrl-btn{padding:14px 10px;border-radius:14px;border:none;cursor:pointer;font-size:.85rem;font-weight:600;touch-action:manipulation}
 .ctrl-btn:active{transform:scale(.95);opacity:.85}
 .ctrl-save{background:rgba(16,185,129,.18);color:#34d399;border:1px solid rgba(16,185,129,.3)}
 .ctrl-history{background:rgba(251,191,36,.18);color:#fbbf24;border:1px solid rgba(251,191,36,.3)}
 .ctrl-reset{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
 .ctrl-edit{background:rgba(167,139,250,.15);color:#c4b5fd;border:1px solid rgba(167,139,250,.3)}
-.ctrl-undo{background:rgba(251,146,60,.15);color:#fb923c;border:1px solid rgba(251,146,60,.28);transition:opacity .2s,background .2s}
-.ctrl-undo:disabled{opacity:.22;cursor:not-allowed;pointer-events:none}
-.ctrl-undo:not(:disabled){box-shadow:0 0 10px rgba(251,146,60,.15)}
+.minus-btn{display:inline-block;margin-top:8px;padding:5px 18px;border-radius:20px;border:1px solid rgba(239,68,68,.28);background:rgba(239,68,68,.1);color:#f87171;font-size:.72rem;font-weight:700;cursor:pointer;touch-action:manipulation;letter-spacing:.4px;transition:all .15s;user-select:none}
+.minus-btn:active{transform:scale(.9);background:rgba(239,68,68,.25);border-color:rgba(239,68,68,.5)}
+.minus-btn:disabled{opacity:.18;cursor:not-allowed;pointer-events:none}
 .ctrl-more{background:rgba(255,255,255,.07);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.12);padding:14px 18px;font-size:1.1rem}
 #more-panel{display:none;max-width:500px;margin:0 auto 12px;background:rgba(255,255,255,.06);border-radius:18px;padding:14px 16px;border:1px solid rgba(255,255,255,.1)}
 #more-panel.open{display:block}
@@ -151,7 +151,6 @@ h1{text-align:center;font-size:clamp(1.5rem,6vw,2rem);margin-bottom:4px;text-sha
     <div class="footer-controls">
       <button class="ctrl-btn ctrl-save" onclick="saveSession()">💾 Save Session</button>
       <button class="ctrl-btn ctrl-more" onclick="toggleMore()">⚙️</button>
-      <button class="ctrl-btn ctrl-undo" id="undo-btn" onclick="undoLast()" disabled>↩ Undo</button>
       <button class="ctrl-btn ctrl-edit" onclick="editMode()">✏️ Edit</button>
     </div>
   </div>
@@ -232,7 +231,6 @@ let children = [], histVis = false, activeBadgeChild = 0;
 let badgeData = {0:{}, 1:{}};
 let sessionHistory = [];
 let _ignoreNextSync = false; // stop echo on own writes
-let lastAction = null;
 
 /* ═══════════════════════════════════════════
    SYNC STATUS
@@ -354,13 +352,13 @@ function renderDojo() {
       <div class="tap-hint">TAP TO GIVE DOJO</div>
       <div class="score" id="sc-${i}">${c.points}</div>
       <div class="score-label">DOJOS</div>
+      <button class="minus-btn" id="mb-${i}" onclick="removePoint(${i})" ${c.points===0?'disabled':''}>− 1 dojo</button>
       <div class="anim-label" id="al-${i}"></div>`;
     grid.appendChild(card);
   });
 }
 
 window.addPoint = async i => {
-  lastAction = { childIndex: i, previousPoints: children[i].points };
   children[i].points++;
   const el = document.getElementById(`sc-${i}`);
   el.textContent = children[i].points;
@@ -376,19 +374,19 @@ window.addPoint = async i => {
   lbl.textContent = anim.name; lbl.classList.add('show');
   setTimeout(()=>lbl.classList.remove('show'), 900);
   if (children[i].points % 2 === 0) bigBurst();
-  document.getElementById('undo-btn').disabled = false;
+  document.getElementById(`mb-${i}`).disabled = false;
   await pushChildren();
 };
 
-window.undoLast = async () => {
-  if (!lastAction) return;
-  const { childIndex, previousPoints } = lastAction;
-  children[childIndex].points = previousPoints;
-  document.getElementById(`sc-${childIndex}`).textContent = previousPoints;
-  const name = children[childIndex].name;
-  lastAction = null;
-  document.getElementById('undo-btn').disabled = true;
-  showToast(`↩ Undone for ${name}`);
+window.removePoint = async i => {
+  if (children[i].points <= 0) return;
+  children[i].points--;
+  const el = document.getElementById(`sc-${i}`);
+  el.textContent = children[i].points;
+  el.classList.remove('pop','shake','spin','bounce');
+  void el.offsetWidth;
+  el.classList.add('shake');
+  document.getElementById(`mb-${i}`).disabled = children[i].points === 0;
   await pushChildren();
 };
 
