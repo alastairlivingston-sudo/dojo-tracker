@@ -59,13 +59,16 @@ h1{text-align:center;font-size:clamp(1.5rem,6vw,2rem);margin-bottom:4px;text-sha
 .score-label{font-size:.65rem;color:rgba(255,255,255,.35);letter-spacing:1px}
 .anim-label{position:absolute;bottom:10px;left:0;right:0;font-size:.6rem;color:rgba(255,255,255,.4);letter-spacing:.8px;opacity:0;transition:opacity .2s}
 .anim-label.show{opacity:1}
-.footer-controls{max-width:500px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;gap:10px}
+.footer-controls{max-width:500px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr 1fr;gap:10px}
 .ctrl-btn{padding:14px 10px;border-radius:14px;border:none;cursor:pointer;font-size:.85rem;font-weight:600;touch-action:manipulation}
 .ctrl-btn:active{transform:scale(.95);opacity:.85}
 .ctrl-save{background:rgba(16,185,129,.18);color:#34d399;border:1px solid rgba(16,185,129,.3)}
 .ctrl-history{background:rgba(251,191,36,.18);color:#fbbf24;border:1px solid rgba(251,191,36,.3)}
 .ctrl-reset{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
 .ctrl-edit{background:rgba(167,139,250,.15);color:#c4b5fd;border:1px solid rgba(167,139,250,.3)}
+.ctrl-undo{background:rgba(251,146,60,.15);color:#fb923c;border:1px solid rgba(251,146,60,.28);transition:opacity .2s,background .2s}
+.ctrl-undo:disabled{opacity:.22;cursor:not-allowed;pointer-events:none}
+.ctrl-undo:not(:disabled){box-shadow:0 0 10px rgba(251,146,60,.15)}
 .ctrl-more{background:rgba(255,255,255,.07);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.12);padding:14px 18px;font-size:1.1rem}
 #more-panel{display:none;max-width:500px;margin:0 auto 12px;background:rgba(255,255,255,.06);border-radius:18px;padding:14px 16px;border:1px solid rgba(255,255,255,.1)}
 #more-panel.open{display:block}
@@ -108,11 +111,6 @@ h1{text-align:center;font-size:clamp(1.5rem,6vw,2rem);margin-bottom:4px;text-sha
 
 #toast{position:fixed;bottom:max(env(safe-area-inset-bottom),20px);left:50%;transform:translateX(-50%) translateY(100px);background:#10b981;color:#fff;padding:12px 22px;border-radius:14px;font-weight:600;font-size:.9rem;transition:transform .3s ease;z-index:1000;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 #toast.show{transform:translateX(-50%) translateY(0)}
-#undo-bar{display:none;max-width:500px;margin:0 auto 10px;background:rgba(255,255,255,.08);border-radius:14px;padding:10px 14px;border:1px solid rgba(255,255,255,.12);align-items:center;gap:10px}
-#undo-bar.show{display:flex}
-.undo-text{flex:1;font-size:.82rem;color:rgba(255,255,255,.65)}
-.undo-btn{padding:7px 16px;border-radius:10px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.18);color:#f87171;font-weight:700;font-size:.82rem;cursor:pointer;touch-action:manipulation;flex-shrink:0}
-.undo-btn:active{opacity:.7}
 #burst{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999}
 </style>
 </head>
@@ -136,10 +134,6 @@ h1{text-align:center;font-size:clamp(1.5rem,6vw,2rem);margin-bottom:4px;text-sha
 
   <div id="page-dojo" class="page active">
     <div class="grid" id="grid"></div>
-    <div id="undo-bar">
-      <span class="undo-text" id="undo-text"></span>
-      <button class="undo-btn" onclick="undoLast()">↩ Undo</button>
-    </div>
     <div id="history-panel">
       <h3>📅 Saved Sessions</h3>
       <div id="history-content"></div>
@@ -157,6 +151,7 @@ h1{text-align:center;font-size:clamp(1.5rem,6vw,2rem);margin-bottom:4px;text-sha
     <div class="footer-controls">
       <button class="ctrl-btn ctrl-save" onclick="saveSession()">💾 Save Session</button>
       <button class="ctrl-btn ctrl-more" onclick="toggleMore()">⚙️</button>
+      <button class="ctrl-btn ctrl-undo" id="undo-btn" onclick="undoLast()" disabled>↩ Undo</button>
       <button class="ctrl-btn ctrl-edit" onclick="editMode()">✏️ Edit</button>
     </div>
   </div>
@@ -237,7 +232,7 @@ let children = [], histVis = false, activeBadgeChild = 0;
 let badgeData = {0:{}, 1:{}};
 let sessionHistory = [];
 let _ignoreNextSync = false; // stop echo on own writes
-let lastAction = null, undoTimer = null;
+let lastAction = null;
 
 /* ═══════════════════════════════════════════
    SYNC STATUS
@@ -381,27 +376,18 @@ window.addPoint = async i => {
   lbl.textContent = anim.name; lbl.classList.add('show');
   setTimeout(()=>lbl.classList.remove('show'), 900);
   if (children[i].points % 2 === 0) bigBurst();
-  showUndoBar(children[i].name, i);
+  document.getElementById('undo-btn').disabled = false;
   await pushChildren();
 };
 
-function showUndoBar(childName) {
-  if (undoTimer) clearTimeout(undoTimer);
-  document.getElementById('undo-text').textContent = `Added dojo to ${childName}`;
-  document.getElementById('undo-bar').classList.add('show');
-  undoTimer = setTimeout(hideUndoBar, 5000);
-}
-function hideUndoBar() {
-  document.getElementById('undo-bar').classList.remove('show');
-  lastAction = null; undoTimer = null;
-}
 window.undoLast = async () => {
   if (!lastAction) return;
   const { childIndex, previousPoints } = lastAction;
   children[childIndex].points = previousPoints;
   document.getElementById(`sc-${childIndex}`).textContent = previousPoints;
   const name = children[childIndex].name;
-  hideUndoBar();
+  lastAction = null;
+  document.getElementById('undo-btn').disabled = true;
   showToast(`↩ Undone for ${name}`);
   await pushChildren();
 };
